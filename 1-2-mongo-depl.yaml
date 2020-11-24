@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+# Deployment is extraction of Pod, Pod is extraction of Container
+kind: Deployment
+metadata:
+  # Any meaningful deployment name
+  name: mongodb-deployment
+  labels:
+    # Any meaningful app label name
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  # template is for pod(container) configuration
+  template:
+    metadata:
+      # Any meaningful deployment name - align above
+      name: mongodb-deployment
+      labels:
+        # Any meaningful app label name - align above
+        app: mongodb
+    spec:
+      # container configuration
+      containers:
+      - name: mongodb
+        image: mongo
+        ports:
+        - containerPort: 27017
+        env:
+      # Create MongoDB required specified username
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            # get the username from secret, make sure referenced secret is ready before apply this yaml.
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        # Create MongoDB required specified password
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            # get the username from secret, make sure referenced secret is ready before apply this yaml.
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+---
+# Keep together for deployment and service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  # selector - specify this service is for which app to use. Same selector app name, the resources are shared to each other.
+  selector:
+    app: mongodb
+  ports: 
+    - protocol: TCP
+      # port - internal service port to be use within cluster
+      port: 27017
+      # targetPort - should be container exposed port
+      targetPort: 27017
